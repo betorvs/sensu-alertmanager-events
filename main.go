@@ -448,7 +448,7 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 	}
 	labels["fingerprint"] = *alert.Fingerprint
 	// add extra annotation
-	annotations["prometheus_url"] = fmt.Sprintf("%s", alert.GeneratorURL)
+	annotations["prometheus_url"] = string(alert.GeneratorURL)
 	if plugin.AlertmanagerExternalURL != "" {
 		annotations["alermanager_url"] = printAlertManagerURL(alertName)
 	}
@@ -643,7 +643,7 @@ func getEvents(auth Auth, namespace string) ([]*types.Event, error) {
 func filterEvents(events []*types.Event) (result []*types.Event) {
 
 	for _, event := range events {
-		if event.Check.ObjectMeta.Labels[plugin.Name] == "owner" {
+		if event.Check.ObjectMeta.Labels[plugin.Name] == "owner" && event.Check.Status != 0 {
 			result = append(result, event)
 		}
 
