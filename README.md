@@ -3,38 +3,10 @@
 ![Go Test](https://github.com/betorvs/sensu-alertmanager-events/workflows/Go%20Test/badge.svg)
 ![goreleaser](https://github.com/betorvs/sensu-alertmanager-events/workflows/goreleaser/badge.svg)
 
-# Check Plugin Template
-
-## Overview
-check-plugin-template is a template repository which wraps the [Sensu Plugin SDK][2].
-To use this project as a template, click the "Use this template" button from the main project page.
-Once the repository is created from this template, you can use the [Sensu Plugin Tool][9] to
-populate the templated fields with the proper values.
-
-## Functionality
-
-After successfully creating a project from this template, update the `Config` struct with any
-configuration options for the plugin, map those values as plugin options in the variable `options`,
-and customize the `checkArgs` and `executeCheck` functions in [main.go][7].
-
-When writing or updating a plugin's README from this template, review the Sensu Community
-[plugin README style guide][3] for content suggestions and guidance. Remove everything
-prior to `# sensu-alertmanager-events` from the generated README file, and add additional context about the
-plugin per the style guide.
-
-## Releases with Github Actions
-
-To release a version of your project, simply tag the target sha with a semver release without a `v`
-prefix (ex. `1.0.0`). This will trigger the [GitHub action][5] workflow to [build and release][4]
-the plugin with goreleaser. Register the asset with [Bonsai][8] to share it with the community!
-
-***
-
 # sensu-alertmanager-events
 
 ## Table of Contents
 - [Overview](#overview)
-- [Files](#files)
 - [Usage examples](#usage-examples)
 - [Configuration](#configuration)
   - [Asset registration](#asset-registration)
@@ -45,11 +17,7 @@ the plugin with goreleaser. Register the asset with [Bonsai][8] to share it with
 
 ## Overview
 
-The sensu-alertmanager-events is a [Sensu Check][6] that fetch alerts from [Alert Manager][13] and send it to sensu agent api. It was inspired by [sensu-kubernetes-events][11] and [sensu-aggregate-check][12].
-
-## Files
-
-N/A
+The sensu-alertmanager-events is a [Sensu Check][1] that fetch alerts from [Alert Manager][2] and send it to sensu agent api. It was inspired by [sensu-kubernetes-events][3] and [sensu-aggregate-check][4]. It doesn't require any change in Alert Manager configuration. 
 
 ## Usage examples
 
@@ -92,7 +60,7 @@ Use "sensu-alertmanager-events [command] --help" for more information about a co
 
 ### Asset registration
 
-[Sensu Assets][10] are the best way to make use of this plugin. If you're not using an asset, please
+[Sensu Assets][5] are the best way to make use of this plugin. If you're not using an asset, please
 consider doing so! If you're using sensuctl 5.13 with Sensu Backend 5.13 or later, you can use the
 following command to add the asset:
 
@@ -112,9 +80,9 @@ metadata:
   name: sensu-alertmanager-events
   namespace: default
 spec:
-  command: sensu-alertmanager-events --example example_arg
+  command: sensu-alertmanager-events -e "https://alertmanager.example.com"
   subscriptions:
-  - system
+  - k8s-agents
   runtime_assets:
   - betorvs/sensu-alertmanager-events
 ```
@@ -137,16 +105,8 @@ go build
 
 For more information about contributing to this plugin, see [Contributing][1].
 
-[1]: https://github.com/sensu/sensu-go/blob/master/CONTRIBUTING.md
-[2]: https://github.com/sensu-community/sensu-plugin-sdk
-[3]: https://github.com/sensu-plugins/community/blob/master/PLUGIN_STYLEGUIDE.md
-[4]: https://github.com/sensu-community/check-plugin-template/blob/master/.github/workflows/release.yml
-[5]: https://github.com/sensu-community/check-plugin-template/actions
-[6]: https://docs.sensu.io/sensu-go/latest/reference/checks/
-[7]: https://github.com/sensu-community/check-plugin-template/blob/master/main.go
-[8]: https://bonsai.sensu.io/
-[9]: https://github.com/sensu-community/sensu-plugin-tool
-[10]: https://docs.sensu.io/sensu-go/latest/reference/assets/
-[11]: https://github.com/sensu/sensu-kubernetes-events
-[12]: https://github.com/sensu/sensu-aggregate-check
-[13]: https://prometheus.io/docs/alerting/latest/alertmanager/
+[1]: https://docs.sensu.io/sensu-go/latest/reference/checks/
+[2]: https://prometheus.io/docs/alerting/latest/alertmanager/
+[3]: https://github.com/sensu/sensu-kubernetes-events
+[4]: https://github.com/sensu/sensu-aggregate-check
+[5]: https://docs.sensu.io/sensu-go/latest/reference/assets/
