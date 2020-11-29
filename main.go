@@ -266,7 +266,7 @@ func checkArgs(event *types.Event) (int, error) {
 	}
 	tlsConfig.InsecureSkipVerify = plugin.InsecureSkipVerify
 
-	tlsConfig.BuildNameToCertificate()
+	// tlsConfig.BuildNameToCertificate()
 	tlsConfig.CipherSuites = v2.DefaultCipherSuites
 
 	return sensu.CheckStateOK, nil
@@ -401,12 +401,12 @@ func printAlert(alert models.GettableAlert, alertName string) (value string) {
 		valueAnnotations += fmt.Sprintf(" - %s: %s \n", k, v)
 	}
 	status = *alert.Status.State
-	value = fmt.Sprintf("Labels: \n")
+	value = "Labels: \n"
 	value += valueLabels
-	value += fmt.Sprintf("Annotations: \n")
+	value += "Annotations: \n"
 	value += valueAnnotations
 
-	value += fmt.Sprintf("Alert Manager: \n")
+	value += "Alert Manager: \n"
 	value += fmt.Sprintf(" - status: %s \n", status)
 	if plugin.AlertmanagerExternalURL != "" {
 		sourceURL := url.QueryEscape(fmt.Sprintf("{alertname=\"%s\"}", alertName))
@@ -418,16 +418,16 @@ func printAlert(alert models.GettableAlert, alertName string) (value string) {
 
 // Parse alert data
 func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluster, kubernetesResource string, label, annotation map[string]string) {
-	labels := make(map[string]string, 0)
-	annotations := make(map[string]string, 0)
+	labels := make(map[string]string)
+	annotations := make(map[string]string)
 	var withNamespace bool
 	var withExtraName bool
 	for k, v := range alert.Labels {
 		if k == plugin.AlertmanagerLabelEntity {
-			cluster = fmt.Sprintf("%s", v)
+			cluster = v
 		}
 		if k == "alertname" {
-			alertName = fmt.Sprintf("%s", v)
+			alertName = v
 		}
 		if k == "namespace" {
 			withNamespace = true

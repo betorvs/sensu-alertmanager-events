@@ -45,12 +45,12 @@ func TestSubmitEventAgentAPI(t *testing.T) {
 			body, err := ioutil.ReadAll(r.Body)
 			assert.NoError(err)
 			eV := &v2.Event{}
-			err = json.Unmarshal(body, eV)
+			_ = json.Unmarshal(body, eV)
 			w.WriteHeader(tc.httpStatus)
 		}))
-		_, err := url.ParseRequestURI(test.URL)
+		_, _ = url.ParseRequestURI(test.URL)
 		plugin.AgentAPIURL = test.URL
-		err = submitEventAgentAPI(event)
+		err := submitEventAgentAPI(event)
 		if tc.expectError {
 			assert.Error(err)
 		} else {
