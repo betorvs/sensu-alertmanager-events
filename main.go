@@ -409,11 +409,15 @@ func printAlert(alert models.GettableAlert, alertName string) (value string) {
 	value += "Alert Manager: \n"
 	value += fmt.Sprintf(" - status: %s \n", status)
 	if plugin.AlertmanagerExternalURL != "" {
-		sourceURL := url.QueryEscape(fmt.Sprintf("{alertname=\"%s\"}", alertName))
-		value += fmt.Sprintf(" - source: %s/#/alerts?silenced=false&inhibited=false&active=true&filter=%s \n", plugin.AlertmanagerExternalURL, sourceURL)
+		value += fmt.Sprintf(" - source: %s", printAlertManagerURL(alertName))
 	}
 	value += fmt.Sprintf("Prometheus:\n - source: %s \n", alert.GeneratorURL)
 	return value
+}
+
+func printAlertManagerURL(alertName string) string {
+	sourceURL := url.QueryEscape(fmt.Sprintf("{alertname=\"%s\"}", alertName))
+	return fmt.Sprintf("%s/#/alerts?silenced=false&inhibited=false&active=true&filter=%s \n", plugin.AlertmanagerExternalURL, sourceURL)
 }
 
 // Parse alert data
@@ -443,6 +447,11 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 		annotations[k] = v
 	}
 	labels["fingerprint"] = *alert.Fingerprint
+	// add extra annotation
+	annotations["prometheus_url"] = fmt.Sprintf("%s", alert.GeneratorURL)
+	if plugin.AlertmanagerExternalURL != "" {
+		annotations["alermanager_url"] = printAlertManagerURL(alertName)
+	}
 	sensuAlertName = alertName
 	if withNamespace {
 		sensuAlertName = fmt.Sprintf("%s-%s", alertName, labels["namespace"])
