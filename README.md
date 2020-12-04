@@ -22,6 +22,7 @@ The sensu-alertmanager-events is a [Sensu Check][1] that fetch alerts from [Aler
 ## Usage examples
 
 ```bash
+
 Sensu check for alert maanager events
 
 Usage:
@@ -39,6 +40,7 @@ Flags:
   -x, --alert-manager-exclude-alert-list string     Alert Manager alerts to be excluded. split by comma. (default "Watchdog,")
   -e, --alert-manager-external-url string           Alert Manager External URL
   -l, --alert-manager-label-selectors string        Query for Alertmanager LabelSelectors (e.g. alertname=TargetDown,environment=dev)
+  -T, --alert-manager-target-alertname string       Alert name for Targets in prometheus. It creates a link in label prometheus_targets_url (default "TargetDown")
   -B, --api-backend-host string                     Sensu Go Backend API Host (e.g. 'sensu-backend.example.com') (default "127.0.0.1")
   -k, --api-backend-key string                      Sensu Go Backend API Key
   -P, --api-backend-pass string                     Sensu Go Backend API Password (default "P@ssw0rd!")
@@ -54,6 +56,7 @@ Flags:
   -t, --trusted-ca-file string                      TLS CA certificate bundle in PEM format
 
 Use "sensu-alertmanager-events [command] --help" for more information about a command.
+
 ```
 
 ## Configuration
