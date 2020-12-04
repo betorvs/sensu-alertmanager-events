@@ -7,7 +7,12 @@ Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
-## [0.0.1] - 2000-01-01
+# [0.0.2] - 2020-12-04
+
+### Added
+- new flag --alert-manager-target-alertname to add label prometheus_targets_url.
+
+## [0.0.1] - 2020-11-30
 
 ### Added
 - Initial release
