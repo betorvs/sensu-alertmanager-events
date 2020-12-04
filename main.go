@@ -21,27 +21,28 @@ import (
 // Config represents the check plugin config.
 type Config struct {
 	sensu.PluginConfig
-	AlertmanagerAPIURL         string
-	AgentAPIURL                string
-	AlertmanagerExcludeAlerts  string
-	AlertmanagerExternalURL    string
-	AlertmanagerLabelEntity    string
-	AlertmanagerLabelSelectors string
-	SensuProxyEntity           string
-	SensuNamespace             string
-	SensuHandler               string
-	SensuAutoClose             bool
-	APIBackendPass             string
-	APIBackendUser             string
-	APIBackendKey              string
-	APIBackendHost             string
-	APIBackendPort             int
-	Secure                     bool
-	TrustedCAFile              string
-	InsecureSkipVerify         bool
-	Protocol                   string
-	ProxyEntity                string
-	LabelSelector              map[string]string
+	AlertmanagerAPIURL          string
+	AgentAPIURL                 string
+	AlertmanagerExcludeAlerts   string
+	AlertmanagerExternalURL     string
+	AlertmanagerLabelEntity     string
+	AlertmanagerLabelSelectors  string
+	AlertmanagerTargetAlertname string
+	SensuProxyEntity            string
+	SensuNamespace              string
+	SensuHandler                string
+	SensuAutoClose              bool
+	APIBackendPass              string
+	APIBackendUser              string
+	APIBackendKey               string
+	APIBackendHost              string
+	APIBackendPort              int
+	Secure                      bool
+	TrustedCAFile               string
+	InsecureSkipVerify          bool
+	Protocol                    string
+	ProxyEntity                 string
+	LabelSelector               map[string]string
 }
 
 // Auth represents the authentication info
@@ -116,6 +117,15 @@ var (
 			Default:   "",
 			Usage:     "Query for Alertmanager LabelSelectors (e.g. alertname=TargetDown,environment=dev)",
 			Value:     &plugin.AlertmanagerLabelSelectors,
+		},
+		{
+			Path:      "alert-manager-target-alertname",
+			Env:       "ALERT_MANAGER_TARGET_ALERTNAME",
+			Argument:  "alert-manager-target-alertname",
+			Shorthand: "T",
+			Default:   "TargetDown",
+			Usage:     "Alert name for Targets in prometheus. It creates a link in label prometheus_targets_url",
+			Value:     &plugin.AlertmanagerTargetAlertname,
 		},
 		{
 			Path:      "sensu-proxy-entity",
@@ -451,6 +461,15 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 	annotations["prometheus_url"] = string(alert.GeneratorURL)
 	if plugin.AlertmanagerExternalURL != "" {
 		annotations["alermanager_url"] = printAlertManagerURL(alertName)
+	}
+	// if alertname TargetDown, we want to include a prometheus targets page to make easy to debug
+	if alertName == plugin.AlertmanagerTargetAlertname {
+		promTargets, err := url.Parse(string(alert.GeneratorURL))
+		if err == nil {
+			promTargets.RawQuery = ""
+			promTargets.Path = "targets"
+			annotations["prometheus_targets_url"] = fmt.Sprintln(promTargets)
+		}
 	}
 	sensuAlertName = alertName
 	if withNamespace {
