@@ -46,7 +46,8 @@ Flags:
   -P, --api-backend-pass string                     Sensu Go Backend API Password (default "P@ssw0rd!")
   -p, --api-backend-port int                        Sensu Go Backend API Port (e.g. 4242) (default 8080)
   -u, --api-backend-user string                     Sensu Go Backend API User (default "admin")
-  -C, --auto-close-sensu                            Configure it to Auto Close if event doesnt match any Alerts from Alert Manager. Please configure others api-backend-* options before enable this flag
+  -C, --auto-close-sensu                            Configure it to Auto Close if event doesn't match any Alerts from Alert Manager. Please configure others api-backend-* options before enable this flag
+      --auto-close-sensu-label string               Configure it to Auto Close if event doesn't match any Alerts from Alert Manager and with these label. e. {"cluster":"k8s-dev"}
   -h, --help                                        help for sensu-alertmanager-events
   -i, --insecure-skip-verify                        skip TLS certificate verification (not recommended!)
   -s, --secure                                      Use TLS connection to API
@@ -56,6 +57,7 @@ Flags:
   -t, --trusted-ca-file string                      TLS CA certificate bundle in PEM format
 
 Use "sensu-alertmanager-events [command] --help" for more information about a command.
+
 
 ```
 
@@ -75,6 +77,8 @@ If you're using an earlier version of sensuctl, you can find the asset on the [B
 
 ### Check definition
 
+Maybe you need to add extra flags if you want to use `--auto-close-sensu`.
+
 ```yml
 ---
 type: CheckConfig
@@ -89,6 +93,11 @@ spec:
   runtime_assets:
   - betorvs/sensu-alertmanager-events
 ```
+
+#### Tips
+
+If you run these check in more than one cluster and use the same Sensu Namespace, use this flag:
+`--auto-close-sensu-label "{\"cluster\":\"k8s.dev\"}"`.
 
 ## Installation from source
 

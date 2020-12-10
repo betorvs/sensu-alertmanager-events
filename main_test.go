@@ -65,3 +65,23 @@ func TestStringInSlice(t *testing.T) {
 	testResult := stringInSlice(testString, testSlice)
 	assert.True(t, testResult)
 }
+
+func TestSearchLabels(t *testing.T) {
+	event1 := v2.FixtureEvent("entity1", "check1")
+	event1.Labels["testa"] = "valuea"
+	event1.Labels["testb"] = "valueb"
+	event1.Labels["testc"] = "valuec"
+	labels := make(map[string]string)
+	res1 := searchLabels(event1, labels)
+	assert.False(t, res1)
+
+	labels["testa"] = "valuea"
+	labels["testc"] = "valuec"
+	res2 := searchLabels(event1, labels)
+	assert.True(t, res2)
+
+	excludeLabels := make(map[string]string)
+	excludeLabels["testc"] = "valuec"
+	res3 := searchLabels(event1, excludeLabels)
+	assert.True(t, res3)
+}

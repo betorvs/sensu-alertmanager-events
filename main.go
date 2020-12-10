@@ -32,6 +32,7 @@ type Config struct {
 	SensuNamespace              string
 	SensuHandler                string
 	SensuAutoClose              bool
+	SensuAutoCloseLabel         string
 	APIBackendPass              string
 	APIBackendUser              string
 	APIBackendKey               string
@@ -156,12 +157,21 @@ var (
 		},
 		{
 			Path:      "auto-close-sensu",
-			Env:       "AUTO_CLOSE_SENSU",
+			Env:       "",
 			Argument:  "auto-close-sensu",
 			Shorthand: "C",
 			Default:   false,
 			Usage:     "Configure it to Auto Close if event doesn't match any Alerts from Alert Manager. Please configure others api-backend-* options before enable this flag",
 			Value:     &plugin.SensuAutoClose,
+		},
+		{
+			Path:      "auto-close-sensu-label",
+			Env:       "AUTO_CLOSE_SENSU_LABEL",
+			Argument:  "auto-close-sensu-label",
+			Shorthand: "",
+			Default:   "",
+			Usage:     "Configure it to Auto Close if event doesn't match any Alerts from Alert Manager and with these label. e. {\"cluster\":\"k8s-dev\"}",
+			Value:     &plugin.SensuAutoCloseLabel,
 		},
 		{
 			Path:      "api-backend-user",
@@ -292,6 +302,7 @@ func executeCheck(event *types.Event) (int, error) {
 	if strings.Contains(plugin.AlertmanagerExcludeAlerts, ",") {
 		AlertmanagerExcludeAlertList = strings.Split(plugin.AlertmanagerExcludeAlerts, ",")
 	}
+	log.Printf("Number of Alerts found: %d", len(alerts))
 	// create an event into sensu
 	for _, a := range alerts {
 		for k, v := range a.Labels {
@@ -313,7 +324,7 @@ func executeCheck(event *types.Event) (int, error) {
 				default:
 					proxyEntityName = kubernetesResource
 				}
-
+				log.Printf("Sending Alert %s to %s", sensuAlertName, proxyEntityName)
 				err = sendAlertsToSensu(alertName, sensuAlertName, proxyEntityName, output, labels, annotations, 2)
 				if err != nil {
 					return sensu.CheckStateCritical, err
@@ -337,6 +348,7 @@ func executeCheck(event *types.Event) (int, error) {
 		if err != nil {
 			return sensu.CheckStateCritical, err
 		}
+		log.Printf("Number of Events found: %d", len(events))
 		for _, e := range events {
 			for k, v := range e.Check.Labels {
 				if k == "fingerprint" {
@@ -660,9 +672,19 @@ func getEvents(auth Auth, namespace string) ([]*types.Event, error) {
 
 // filter events from sensu-backend-api to look only events created by this plugin
 func filterEvents(events []*types.Event) (result []*types.Event) {
-
+	excludeLabels := make(map[string]string)
+	if plugin.SensuAutoCloseLabel != "" {
+		err := json.Unmarshal([]byte(plugin.SensuAutoCloseLabel), &excludeLabels)
+		if err != nil {
+			log.Println("fail in SensuAutoCloseLabel Unmarshal")
+			return result
+		}
+	}
 	for _, event := range events {
 		if event.Check.ObjectMeta.Labels[plugin.Name] == "owner" && event.Check.Status != 0 {
+			if excludeLabels != nil && !searchLabels(event, excludeLabels) {
+				break
+			}
 			result = append(result, event)
 		}
 
@@ -723,4 +745,39 @@ func trimBody(body []byte, maxlen int) string {
 	}
 
 	return string(body)[0:maxlen]
+}
+
+func searchLabels(event *types.Event, labels map[string]string) bool {
+	if len(labels) == 0 {
+		return false
+	}
+	count := 0
+	for key, value := range labels {
+		if event.Labels != nil {
+			for k, v := range event.Labels {
+				if k == key && v == value {
+					count++
+				}
+			}
+		}
+		if event.Entity.Labels != nil {
+			for k, v := range event.Entity.Labels {
+				if k == key && v == value {
+					count++
+				}
+			}
+		}
+		if event.Check.Labels != nil {
+			for k, v := range event.Check.Labels {
+				if k == key && v == value {
+					count++
+				}
+			}
+		}
+		if count == len(labels) {
+			return true
+		}
+	}
+
+	return false
 }
