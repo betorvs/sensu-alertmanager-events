@@ -85,3 +85,14 @@ func TestSearchLabels(t *testing.T) {
 	res3 := searchLabels(event1, excludeLabels)
 	assert.True(t, res3)
 }
+
+func TestRemoveSpecialCharacters(t *testing.T) {
+	test1 := "[test]Check-Long(testa / testb)"
+	res1 := removeSpecialCharacters(test1)
+	assert.NotContains(t, res1, "/")
+	assert.NotContains(t, res1, "(")
+	assert.NotContains(t, res1, "[")
+	test2 := "JustCommon-check-http"
+	res2 := removeSpecialCharacters(test2)
+	assert.Contains(t, res2, "Common-check")
+}

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -348,12 +349,12 @@ func executeCheck(event *types.Event) (int, error) {
 		if err != nil {
 			return sensu.CheckStateCritical, err
 		}
-		log.Printf("Number of Events found: %d", len(events))
+		log.Printf("Number of Events found: %d\n", len(events))
 		for _, e := range events {
 			for k, v := range e.Check.Labels {
 				if k == "fingerprint" {
 					if !checkFingerprint(alerts, v) {
-						log.Printf("Closing %s", e.Check.Name)
+						log.Printf("Closing %s \n", e.Check.Name)
 						output := fmt.Sprintf("Resolved Automatically \n %s", e.Check.Output)
 						err = sendAlertsToSensu(e.Check.Labels["alertname"], e.Check.Name, e.Check.ProxyEntityName, output, e.Check.Labels, e.Check.Annotations, 0)
 						if err != nil {
@@ -483,7 +484,7 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 			annotations["prometheus_targets_url"] = fmt.Sprintln(promTargets)
 		}
 	}
-	sensuAlertName = alertName
+	sensuAlertName = removeSpecialCharacters(alertName)
 	if withNamespace {
 		sensuAlertName = fmt.Sprintf("%s-%s", alertName, labels["namespace"])
 		onlyPod := true
@@ -780,4 +781,16 @@ func searchLabels(event *types.Event, labels map[string]string) bool {
 	}
 
 	return false
+}
+
+func removeSpecialCharacters(s string) string {
+	// regex to remove all nonalphanumeric characters and keep -
+	re := regexp.MustCompile(`[^A-Za-z0-9.-.]+`)
+	value := re.ReplaceAllString(s, "-")
+	// remove all - in the check prefix
+	value = strings.TrimPrefix(value, "-")
+	// remove all - in the check suffix
+	value = strings.TrimSuffix(value, "-")
+	// fmt.Println(value)
+	return value
 }
