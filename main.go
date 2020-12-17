@@ -324,6 +324,13 @@ func executeCheck(event *types.Event) (int, error) {
 
 				default:
 					proxyEntityName = kubernetesResource
+					if kubernetesResource == "" {
+						proxyEntityName = removeSpecialCharacters(alertName)
+					}
+				}
+				if *a.Status.State != "active" {
+					log.Printf("Not Sending Alert %s", a.Labels["alertname"])
+					break
 				}
 				log.Printf("Sending Alert %s to %s", sensuAlertName, proxyEntityName)
 				err = sendAlertsToSensu(alertName, sensuAlertName, proxyEntityName, output, labels, annotations, 2)
@@ -579,7 +586,7 @@ func submitEventAgentAPI(event *v2.Event) error {
 	return nil
 }
 
-// authenticate funcion to wotk with api-backend-* flags
+// authenticate funcion to work with api-backend-* flags
 func authenticate() (Auth, error) {
 	var auth Auth
 	client := http.DefaultClient
@@ -683,7 +690,7 @@ func filterEvents(events []*types.Event) (result []*types.Event) {
 	}
 	for _, event := range events {
 		if event.Check.ObjectMeta.Labels[plugin.Name] == "owner" && event.Check.Status != 0 {
-			if excludeLabels != nil && !searchLabels(event, excludeLabels) {
+			if plugin.SensuAutoCloseLabel != "" && !searchLabels(event, excludeLabels) {
 				break
 			}
 			result = append(result, event)
