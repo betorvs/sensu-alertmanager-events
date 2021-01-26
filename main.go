@@ -400,7 +400,7 @@ func sendAlertsToSensu(alertName, sensuAlertName, proxyEntity, output string, la
 	payload := &v2.Event{
 		Check: &v2.Check{
 			Output:          output,
-			Command:         alertName,
+			Command:         removeSpecialCharacters(alertName),
 			Status:          sensuStatus,
 			ProxyEntityName: proxyEntity,
 			Handlers:        SensuHandlers,
