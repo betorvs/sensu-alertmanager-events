@@ -672,7 +672,6 @@ func getEvents(auth Auth, namespace string) ([]*types.Event, error) {
 		trim := 64
 		return events, fmt.Errorf("error unmarshalling response during getEvents: %v\nFirst %d bytes of response: %s", err, trim, trimBody(body, trim))
 	}
-
 	result := filterEvents(events)
 
 	return result, err
@@ -680,22 +679,29 @@ func getEvents(auth Auth, namespace string) ([]*types.Event, error) {
 
 // filter events from sensu-backend-api to look only events created by this plugin
 func filterEvents(events []*types.Event) (result []*types.Event) {
-	excludeLabels := make(map[string]string)
+	onlyTheseLabels := make(map[string]string)
 	if plugin.SensuAutoCloseLabel != "" {
-		err := json.Unmarshal([]byte(plugin.SensuAutoCloseLabel), &excludeLabels)
+		err := json.Unmarshal([]byte(plugin.SensuAutoCloseLabel), &onlyTheseLabels)
+		fmt.Println(onlyTheseLabels)
 		if err != nil {
 			log.Println("fail in SensuAutoCloseLabel Unmarshal")
 			return result
 		}
 	}
+	var partialResult []*types.Event
 	for _, event := range events {
 		if event.Check.ObjectMeta.Labels[plugin.Name] == "owner" && event.Check.Status != 0 {
-			if plugin.SensuAutoCloseLabel != "" && !searchLabels(event, excludeLabels) {
-				break
-			}
 			result = append(result, event)
 		}
-
+	}
+	if plugin.SensuAutoCloseLabel != "" {
+		for _, event := range partialResult {
+			if searchLabels(event, onlyTheseLabels) {
+				result = append(result, event)
+			}
+		}
+	} else {
+		result = partialResult
 	}
 	return result
 }
