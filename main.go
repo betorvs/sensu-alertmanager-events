@@ -405,7 +405,7 @@ func sendAlertsToSensu(alertName, sensuAlertName, proxyEntity, output string, la
 			ProxyEntityName: proxyEntity,
 			Handlers:        SensuHandlers,
 			ObjectMeta: v2.ObjectMeta{
-				Name:        sensuAlertName,
+				Name:        removeSpecialCharacters(sensuAlertName),
 				Namespace:   plugin.SensuNamespace,
 				Labels:      labels,
 				Annotations: annotations,
