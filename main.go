@@ -678,30 +678,27 @@ func getEvents(auth Auth, namespace string) ([]*types.Event, error) {
 }
 
 // filter events from sensu-backend-api to look only events created by this plugin
-func filterEvents(events []*types.Event) (result []*types.Event) {
-	onlyTheseLabels := make(map[string]string)
-	if plugin.SensuAutoCloseLabel != "" {
-		err := json.Unmarshal([]byte(plugin.SensuAutoCloseLabel), &onlyTheseLabels)
-		fmt.Println(onlyTheseLabels)
-		if err != nil {
-			log.Println("fail in SensuAutoCloseLabel Unmarshal")
-			return result
-		}
-	}
-	var partialResult []*types.Event
+func filterEvents(events []*types.Event) []*types.Event {
+	var result, partialResult []*types.Event
 	for _, event := range events {
 		if event.Check.ObjectMeta.Labels[plugin.Name] == "owner" && event.Check.Status != 0 {
 			result = append(result, event)
 		}
 	}
+	onlyTheseLabels := make(map[string]string)
 	if plugin.SensuAutoCloseLabel != "" {
-		for _, event := range partialResult {
+		err := json.Unmarshal([]byte(plugin.SensuAutoCloseLabel), &onlyTheseLabels)
+		// fmt.Println(onlyTheseLabels)
+		if err != nil {
+			log.Println("fail in SensuAutoCloseLabel Unmarshal")
+			return partialResult
+		}
+		for _, event := range result {
 			if searchLabels(event, onlyTheseLabels) {
-				result = append(result, event)
+				partialResult = append(partialResult, event)
 			}
 		}
-	} else {
-		result = partialResult
+		return partialResult
 	}
 	return result
 }
@@ -788,11 +785,10 @@ func searchLabels(event *types.Event, labels map[string]string) bool {
 				}
 			}
 		}
-		if count == len(labels) {
+		if count >= len(labels) {
 			return true
 		}
 	}
-
 	return false
 }
 
