@@ -106,6 +106,10 @@ func TestParseLabelArg(t *testing.T) {
 	val2 := map[string]string{"OneLabel": "OneValue", "TwoLabel": "TwoValue"}
 	res2 := parseLabelArg(test2)
 	assert.Equal(t, val2, res2)
+	test3 := "OneLabelOneValue,TwoLabel=TwoValue"
+	val3 := map[string]string{"TwoLabel": "TwoValue"}
+	res3 := parseLabelArg(test3)
+	assert.Equal(t, val3, res3)
 }
 
 func TestMergeStringMaps(t *testing.T) {
@@ -119,4 +123,14 @@ func TestMergeStringMaps(t *testing.T) {
 	val2 := map[string]string{"left1": "leftValue1", "right1": "rightValue1"}
 	res2 := mergeStringMaps(left2, right2)
 	assert.Equal(t, val2, res2)
+	left3 := map[string]string{"left1": "leftValue1"}
+	right3 := map[string]string{}
+	val3 := map[string]string{"left1": "leftValue1"}
+	res3 := mergeStringMaps(left3, right3)
+	assert.Equal(t, val3, res3)
+	left4 := map[string]string{}
+	right4 := map[string]string{"right1": "rightValue1"}
+	val4 := map[string]string{"right1": "rightValue1"}
+	res4 := mergeStringMaps(left4, right4)
+	assert.Equal(t, val4, res4)
 }

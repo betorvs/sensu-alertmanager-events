@@ -310,6 +310,18 @@ func checkArgs(event *types.Event) (int, error) {
 	// tlsConfig.BuildNameToCertificate()
 	tlsConfig.CipherSuites = v2.DefaultCipherSuites
 
+	// check if format is correct
+	if plugin.SensuExtraLabel != "" {
+		if !strings.Contains(plugin.SensuExtraLabel, "=") {
+			return sensu.CheckStateWarning, fmt.Errorf("Please use Format: Label=Value. Wrong format --sensu-extra-label %s", plugin.SensuExtraLabel)
+		}
+	}
+	if plugin.SensuExtraAnnotation != "" {
+		if !strings.Contains(plugin.SensuExtraAnnotation, "=") {
+			return sensu.CheckStateWarning, fmt.Errorf("Please use Format: Annotation=Value. Wrong format --sensu-extra-annotation %s", plugin.SensuExtraAnnotation)
+		}
+	}
+
 	return sensu.CheckStateOK, nil
 }
 
