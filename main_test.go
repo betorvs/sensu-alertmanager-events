@@ -96,3 +96,27 @@ func TestRemoveSpecialCharacters(t *testing.T) {
 	res2 := removeSpecialCharacters(test2)
 	assert.Contains(t, res2, "Common-check")
 }
+
+func TestParseLabelArg(t *testing.T) {
+	test1 := "OneLabel=OneValue"
+	val1 := map[string]string{"OneLabel": "OneValue"}
+	res1 := parseLabelArg(test1)
+	assert.Equal(t, val1, res1)
+	test2 := "OneLabel=OneValue,TwoLabel=TwoValue"
+	val2 := map[string]string{"OneLabel": "OneValue", "TwoLabel": "TwoValue"}
+	res2 := parseLabelArg(test2)
+	assert.Equal(t, val2, res2)
+}
+
+func TestMergeStringMaps(t *testing.T) {
+	left1 := map[string]string{"left1": "leftValue1"}
+	right1 := map[string]string{"right1": "rightValue1"}
+	val1 := map[string]string{"left1": "leftValue1", "right1": "rightValue1"}
+	res1 := mergeStringMaps(left1, right1)
+	assert.Equal(t, val1, res1)
+	left2 := map[string]string{"left1": "leftValue1"}
+	right2 := map[string]string{"right1": "rightValue1", "left1": "rightValueLeft1"}
+	val2 := map[string]string{"left1": "leftValue1", "right1": "rightValue1"}
+	res2 := mergeStringMaps(left2, right2)
+	assert.Equal(t, val2, res2)
+}

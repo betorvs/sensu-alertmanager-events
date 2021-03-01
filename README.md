@@ -51,6 +51,8 @@ Flags:
   -h, --help                                        help for sensu-alertmanager-events
   -i, --insecure-skip-verify                        skip TLS certificate verification (not recommended!)
   -s, --secure                                      Use TLS connection to API
+      --sensu-extra-annotation string               Add Extra Sensu Check Annotation in alert send to Sensu Agent API. Format: annotationName=annotationValue Or for multiples use comma: annotationName=annotationValue,extraTwo=extraValue
+      --sensu-extra-label string                    Add Extra Sensu Check Label in alert send to Sensu Agent API. Format: labelName=labelValue Or for multiple values labelName=labelValue,ExtraLabel=ExtraValue
   -H, --sensu-handler string                        Sensu Handler for alerts. Split by commas (default "default,")
   -n, --sensu-namespace string                      Configure which Sensu Namespace wll be used by alerts (default "default")
   -E, --sensu-proxy-entity string                   Overwrite Proxy Entity in Sensu

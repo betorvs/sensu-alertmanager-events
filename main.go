@@ -32,6 +32,8 @@ type Config struct {
 	SensuProxyEntity            string
 	SensuNamespace              string
 	SensuHandler                string
+	SensuExtraLabel             string
+	SensuExtraAnnotation        string
 	SensuAutoClose              bool
 	SensuAutoCloseLabel         string
 	APIBackendPass              string
@@ -155,6 +157,24 @@ var (
 			Default:   "default,",
 			Usage:     "Sensu Handler for alerts. Split by commas",
 			Value:     &plugin.SensuHandler,
+		},
+		{
+			Path:      "sensu-extra-label",
+			Env:       "SENSU_EXTRA_LABEL",
+			Argument:  "sensu-extra-label",
+			Shorthand: "",
+			Default:   "",
+			Usage:     "Add Extra Sensu Check Label in alert send to Sensu Agent API. Format: labelName=labelValue Or for multiple values labelName=labelValue,ExtraLabel=ExtraValue",
+			Value:     &plugin.SensuExtraLabel,
+		},
+		{
+			Path:      "sensu-extra-annotation",
+			Env:       "SENSU_EXTRA_ANNOTATION",
+			Argument:  "sensu-extra-annotation",
+			Shorthand: "",
+			Default:   "",
+			Usage:     "Add Extra Sensu Check Annotation in alert send to Sensu Agent API. Format: annotationName=annotationValue Or for multiples use comma: annotationName=annotationValue,extraTwo=extraValue",
+			Value:     &plugin.SensuExtraAnnotation,
 		},
 		{
 			Path:      "auto-close-sensu",
@@ -329,8 +349,19 @@ func executeCheck(event *types.Event) (int, error) {
 					}
 				}
 				if *a.Status.State != "active" {
+					// if not active, don't post it to sensu
 					log.Printf("Not Sending Alert %s", a.Labels["alertname"])
-					break
+					continue
+				}
+				if plugin.SensuExtraLabel != "" {
+					extraLabels := parseLabelArg(plugin.SensuExtraLabel)
+					// log.Println(extraLabels)
+					labels = mergeStringMaps(labels, extraLabels)
+				}
+				if plugin.SensuExtraAnnotation != "" {
+					extraAnnotations := parseLabelArg(plugin.SensuExtraAnnotation)
+					// log.Println(extraAnnotations)
+					annotations = mergeStringMaps(annotations, extraAnnotations)
 				}
 				log.Printf("Sending Alert %s to %s", sensuAlertName, proxyEntityName)
 				err = sendAlertsToSensu(alertName, sensuAlertName, proxyEntityName, output, labels, annotations, 2)
@@ -802,4 +833,14 @@ func removeSpecialCharacters(s string) string {
 	value = strings.TrimSuffix(value, "-")
 	// fmt.Println(value)
 	return value
+}
+
+func mergeStringMaps(left, right map[string]string) map[string]string {
+	for k, v := range right {
+		// fmt.Println(left[k])
+		if left[k] == "" {
+			left[k] = v
+		}
+	}
+	return left
 }
