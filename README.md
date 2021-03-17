@@ -50,6 +50,7 @@ Flags:
       --auto-close-sensu-label string               Configure it to Auto Close if event doesn't match any Alerts from Alert Manager and with these label. e. {"cluster":"k8s-dev"}
   -h, --help                                        help for sensu-alertmanager-events
   -i, --insecure-skip-verify                        skip TLS certificate verification (not recommended!)
+      --rewrite-annotation string                   Rewrite Annotation from prometheus rules to sensu annotation format to work with sensu plugins. Format: opsgenie_priority=sensu.io/plugins/sensu-opsgenie-handler/config/priority Or for multiples use comma: opsgenie_priority=sensu.io/plugins/sensu-opsgenie-handler/config/priority,extraTwo=extraValue
   -s, --secure                                      Use TLS connection to API
       --sensu-extra-annotation string               Add Extra Sensu Check Annotation in alert send to Sensu Agent API. Format: annotationName=annotationValue Or for multiples use comma: annotationName=annotationValue,extraTwo=extraValue
       --sensu-extra-label string                    Add Extra Sensu Check Label in alert send to Sensu Agent API. Format: labelName=labelValue Or for multiple values labelName=labelValue,ExtraLabel=ExtraValue

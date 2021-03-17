@@ -11,6 +11,7 @@ Versioning](http://semver.org/spec/v2.0.0.html).
 
 ### Added
 - new flags `--sensu-extra-annotation string` and `--sensu-extra-label string` to add annotations and labels in each alert create in sensu agent api.
+- new flag `--rewrite-annotation` to allow rewrite an annotation from prometheus rules into sensu format. Example: `--rewrite-annotation opsgenie_priority=sensu.io/plugins/sensu-opsgenie-handler/config/priority`
 
 ## [0.0.2] - 2020-12-04
 

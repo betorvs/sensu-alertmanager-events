@@ -34,6 +34,7 @@ type Config struct {
 	SensuHandler                string
 	SensuExtraLabel             string
 	SensuExtraAnnotation        string
+	RewriteAnnotation           string
 	SensuAutoClose              bool
 	SensuAutoCloseLabel         string
 	APIBackendPass              string
@@ -175,6 +176,15 @@ var (
 			Default:   "",
 			Usage:     "Add Extra Sensu Check Annotation in alert send to Sensu Agent API. Format: annotationName=annotationValue Or for multiples use comma: annotationName=annotationValue,extraTwo=extraValue",
 			Value:     &plugin.SensuExtraAnnotation,
+		},
+		{
+			Path:      "rewrite-annotation",
+			Env:       "",
+			Argument:  "rewrite-annotation",
+			Shorthand: "",
+			Default:   "",
+			Usage:     "Rewrite Annotation from prometheus rules to sensu annotation format to work with sensu plugins. Format: opsgenie_priority=sensu.io/plugins/sensu-opsgenie-handler/config/priority Or for multiples use comma: opsgenie_priority=sensu.io/plugins/sensu-opsgenie-handler/config/priority,extraTwo=extraValue",
+			Value:     &plugin.RewriteAnnotation,
 		},
 		{
 			Path:      "auto-close-sensu",
@@ -320,6 +330,13 @@ func checkArgs(event *types.Event) (int, error) {
 		if !strings.Contains(plugin.SensuExtraAnnotation, "=") {
 			return sensu.CheckStateWarning, fmt.Errorf("Please use Format: Annotation=Value. Wrong format --sensu-extra-annotation %s", plugin.SensuExtraAnnotation)
 		}
+	}
+
+	if plugin.RewriteAnnotation != "" {
+		if !strings.Contains(plugin.RewriteAnnotation, "=") {
+			return sensu.CheckStateWarning, fmt.Errorf("Please use Format: Annotation=Value. Wrong format --rewrite-annotation %s", plugin.RewriteAnnotation)
+		}
+
 	}
 
 	return sensu.CheckStateOK, nil
@@ -512,7 +529,15 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 		if k == "job_name" || k == "statefulset" || k == "daemonset" || k == "deployment" || k == "node" || k == "service" || k == "pod" {
 			withExtraName = true
 		}
-		labels[k] = v
+		key := k
+		if plugin.RewriteAnnotation != "" {
+			rule := makeRewriteAnnotation(plugin.RewriteAnnotation)
+			tmp, err := rewriteAnnotation(key, rule)
+			if err == nil && tmp != "" {
+				key = tmp
+			}
+		}
+		labels[key] = v
 	}
 	// extra label
 	labels[plugin.Name] = "owner"
@@ -855,4 +880,40 @@ func mergeStringMaps(left, right map[string]string) map[string]string {
 		}
 	}
 	return left
+}
+
+func rewriteAnnotation(s string, rule map[string]string) (string, error) {
+	if rule[s] != "" {
+		return rule[s], nil
+	}
+	return "", fmt.Errorf("not found")
+}
+
+func makeRewriteAnnotation(s string) map[string]string {
+	rewrite := make(map[string]string)
+	if strings.Contains(s, ",") {
+		splited := strings.Split(s, ",")
+		for _, v := range splited {
+			a, b := splitString(v, "=")
+			if a != "" && b != "" {
+				rewrite[a] = b
+			}
+		}
+	} else {
+		a, b := splitString(s, "=")
+		if a != "" && b != "" {
+			rewrite[a] = b
+		}
+	}
+	return rewrite
+}
+
+func splitString(s, div string) (string, string) {
+	if div != "" {
+		splited := strings.Split(s, div)
+		if len(splited) == 2 {
+			return splited[0], splited[1]
+		}
+	}
+	return "", ""
 }

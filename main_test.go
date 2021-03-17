@@ -134,3 +134,40 @@ func TestMergeStringMaps(t *testing.T) {
 	res4 := mergeStringMaps(left4, right4)
 	assert.Equal(t, val4, res4)
 }
+
+func TestSplitString(t *testing.T) {
+	test1 := "key1=value1"
+	res1 := "key1"
+	res2 := "value1"
+	val1, val2 := splitString(test1, "=")
+	assert.Equal(t, res1, val1)
+	assert.Equal(t, res2, val2)
+	assert.NotEqual(t, res1, val2)
+}
+
+func TestMakeRewriteAnnotation(t *testing.T) {
+	test1 := "key1=value1,key2=value2"
+	res1 := map[string]string{"key1": "value1", "key2": "value2"}
+	val1 := makeRewriteAnnotation(test1)
+	assert.Equal(t, res1, val1)
+	test2 := "key1=value1,key2/subkey2=value2"
+	res2 := map[string]string{"key1": "value1", "key2/subkey2": "value2"}
+	val2 := makeRewriteAnnotation(test2)
+	assert.Equal(t, res2, val2)
+	test3 := "key1=value1,key2=value2,"
+	res3 := map[string]string{"key1": "value1", "key2": "value2"}
+	val3 := makeRewriteAnnotation(test3)
+	assert.Equal(t, res3, val3)
+}
+
+func TestRewriteAnnotation(t *testing.T) {
+	test1 := "opsgenie_priority=sensu.io/plugins/sensu-opsgenie-handler/config/priority"
+	val1 := "opsgenie_priority"
+	expected1 := "sensu.io/plugins/sensu-opsgenie-handler/config/priority"
+	rule1 := makeRewriteAnnotation(test1)
+	rule1res := map[string]string{"opsgenie_priority": "sensu.io/plugins/sensu-opsgenie-handler/config/priority"}
+	assert.Equal(t, rule1, rule1res)
+	res1, err1 := rewriteAnnotation(val1, rule1)
+	assert.NoError(t, err1)
+	assert.Equal(t, res1, expected1)
+}
