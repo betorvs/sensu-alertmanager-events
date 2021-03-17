@@ -523,7 +523,7 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 	// add extra annotation
 	annotations["prometheus_url"] = string(alert.GeneratorURL)
 	if plugin.AlertmanagerExternalURL != "" {
-		annotations["alermanager_url"] = printAlertManagerURL(alertName)
+		annotations["alertmanager_url"] = printAlertManagerURL(alertName)
 	}
 	// if alertname TargetDown, we want to include a prometheus targets page to make easy to debug
 	if alertName == plugin.AlertmanagerTargetAlertname {
