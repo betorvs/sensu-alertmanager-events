@@ -530,6 +530,19 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 			withExtraName = true
 		}
 		key := k
+		// if plugin.RewriteAnnotation != "" {
+		// 	rule := makeRewriteAnnotation(plugin.RewriteAnnotation)
+		// 	tmp, err := rewriteAnnotation(key, rule)
+		// 	if err == nil && tmp != "" {
+		// 		key = tmp
+		// 	}
+		// }
+		labels[key] = v
+	}
+	// extra label
+	labels[plugin.Name] = "owner"
+	for k, v := range alert.Annotations {
+		key := k
 		if plugin.RewriteAnnotation != "" {
 			rule := makeRewriteAnnotation(plugin.RewriteAnnotation)
 			tmp, err := rewriteAnnotation(key, rule)
@@ -537,12 +550,7 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 				key = tmp
 			}
 		}
-		labels[key] = v
-	}
-	// extra label
-	labels[plugin.Name] = "owner"
-	for k, v := range alert.Annotations {
-		annotations[k] = v
+		annotations[key] = v
 	}
 	labels["fingerprint"] = *alert.Fingerprint
 	// add extra annotation
