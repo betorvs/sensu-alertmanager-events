@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/prometheus/alertmanager/api/v2/models"
@@ -352,54 +353,13 @@ func executeCheck(event *types.Event) (int, error) {
 	if strings.Contains(plugin.AlertmanagerExcludeAlerts, ",") {
 		AlertmanagerExcludeAlertList = strings.Split(plugin.AlertmanagerExcludeAlerts, ",")
 	}
-	log.Printf("Number of Alerts found: %d", len(alerts))
+	numAlerts := len(alerts)
+	log.Printf("Number of Alerts found: %d", numAlerts)
 	// create an event into sensu
-	for _, a := range alerts {
-		for k, v := range a.Labels {
-			if k == "alertname" && !stringInSlice(v, AlertmanagerExcludeAlertList) {
-
-				alertName, sensuAlertName, clusterName, kubernetesResource, labels, annotations := alertDetails(a)
-				output := printAlert(a, alertName)
-				var proxyEntityName string
-				switch plugin.ProxyEntity {
-				case "KubernetesResource":
-					proxyEntityName = kubernetesResource
-
-				case "AlertmanagerLabelEntity":
-					proxyEntityName = clusterName
-
-				case "SensuProxyEntity":
-					proxyEntityName = plugin.SensuProxyEntity
-
-				default:
-					proxyEntityName = kubernetesResource
-					if kubernetesResource == "" {
-						proxyEntityName = removeSpecialCharacters(alertName)
-					}
-				}
-				if *a.Status.State != "active" {
-					// if not active, don't post it to sensu
-					log.Printf("Not Sending Alert %s", a.Labels["alertname"])
-					continue
-				}
-				if plugin.SensuExtraLabel != "" {
-					extraLabels := parseLabelArg(plugin.SensuExtraLabel)
-					// log.Println(extraLabels)
-					labels = mergeStringMaps(labels, extraLabels)
-				}
-				if plugin.SensuExtraAnnotation != "" {
-					extraAnnotations := parseLabelArg(plugin.SensuExtraAnnotation)
-					// log.Println(extraAnnotations)
-					annotations = mergeStringMaps(annotations, extraAnnotations)
-				}
-				log.Printf("Sending Alert %s to %s", sensuAlertName, proxyEntityName)
-				err = sendAlertsToSensu(alertName, sensuAlertName, proxyEntityName, output, labels, annotations, 2)
-				if err != nil {
-					return sensu.CheckStateCritical, err
-				}
-
-			}
-		}
+	// parallel
+	var countErrors, countErrorsClosing int
+	if numAlerts != 0 {
+		countErrors = processAlertsToSensuAgent(alerts, AlertmanagerExcludeAlertList)
 	}
 	// Compare sensu events with alerts and resolved it
 	if plugin.SensuAutoClose {
@@ -416,24 +376,116 @@ func executeCheck(event *types.Event) (int, error) {
 		if err != nil {
 			return sensu.CheckStateCritical, err
 		}
-		log.Printf("Number of Events found: %d\n", len(events))
-		for _, e := range events {
+		numEvents := len(events)
+		log.Printf("Number of Events found: %d\n", numEvents)
+		if numEvents != 0 {
+			countErrorsClosing = processSensuEventsToClose(events, alerts)
+		}
+	}
+	if countErrors != 0 {
+		return sensu.CheckStateCritical, fmt.Errorf("cannot create all events in sensu")
+	}
+	if countErrorsClosing != 0 {
+		return sensu.CheckStateWarning, fmt.Errorf("cannot close all events in sensu backend")
+	}
+	return sensu.CheckStateOK, nil
+}
+
+func processAlertsToSensuAgent(alerts []models.GettableAlert, AlertmanagerExcludeAlertList []string) int {
+	count := 0
+	results := make(chan int, len(alerts))
+	var wg sync.WaitGroup
+	for _, a := range alerts {
+		wg.Add(1)
+		go func(a models.GettableAlert) {
+			defer wg.Done()
+			for k, v := range a.Labels {
+				if k == "alertname" && !stringInSlice(v, AlertmanagerExcludeAlertList) {
+
+					alertName, sensuAlertName, clusterName, kubernetesResource, labels, annotations := alertDetails(a)
+					output := printAlert(a, alertName)
+					var proxyEntityName string
+					switch plugin.ProxyEntity {
+					case "KubernetesResource":
+						proxyEntityName = kubernetesResource
+
+					case "AlertmanagerLabelEntity":
+						proxyEntityName = clusterName
+
+					case "SensuProxyEntity":
+						proxyEntityName = plugin.SensuProxyEntity
+
+					default:
+						proxyEntityName = kubernetesResource
+						if kubernetesResource == "" {
+							proxyEntityName = removeSpecialCharacters(alertName)
+						}
+					}
+					if *a.Status.State != "active" {
+						// if not active, don't post it to sensu
+						log.Printf("Not Sending Alert %s", a.Labels["alertname"])
+						continue
+					}
+					if plugin.SensuExtraLabel != "" {
+						extraLabels := parseLabelArg(plugin.SensuExtraLabel)
+						// log.Println(extraLabels)
+						labels = mergeStringMaps(labels, extraLabels)
+					}
+					if plugin.SensuExtraAnnotation != "" {
+						extraAnnotations := parseLabelArg(plugin.SensuExtraAnnotation)
+						// log.Println(extraAnnotations)
+						annotations = mergeStringMaps(annotations, extraAnnotations)
+					}
+					log.Printf("Sending Alert %s to %s", sensuAlertName, proxyEntityName)
+					err := sendAlertsToSensu(alertName, sensuAlertName, proxyEntityName, output, labels, annotations, 2)
+					if err != nil {
+						log.Printf("Error sending Alert %s to %s", sensuAlertName, proxyEntityName)
+						results <- 1
+						// count++
+					}
+
+				}
+			}
+		}(a)
+	}
+	wg.Wait()
+	close(results)
+	for r := range results {
+		count += r
+	}
+	return count
+}
+
+func processSensuEventsToClose(events []*v2.Event, alerts []models.GettableAlert) int {
+	count := 0
+	results := make(chan int, len(events))
+	var wg sync.WaitGroup
+	for _, e := range events {
+		wg.Add(1)
+		go func(e *v2.Event) {
+			defer wg.Done()
 			for k, v := range e.Check.Labels {
 				if k == "fingerprint" {
 					if !checkFingerprint(alerts, v) {
 						log.Printf("Closing %s \n", e.Check.Name)
 						output := fmt.Sprintf("Resolved Automatically \n %s", e.Check.Output)
-						err = sendAlertsToSensu(e.Check.Labels["alertname"], e.Check.Name, e.Check.ProxyEntityName, output, e.Check.Labels, e.Check.Annotations, 0)
+						err := sendAlertsToSensu(e.Check.Labels["alertname"], e.Check.Name, e.Check.ProxyEntityName, output, e.Check.Labels, e.Check.Annotations, 0)
 						if err != nil {
-							return sensu.CheckStateCritical, err
+							log.Printf("Error closing %s \n", e.Check.Name)
+							results <- 1
+							// count++
 						}
 					}
 				}
 			}
-		}
+		}(e)
 	}
-
-	return sensu.CheckStateOK, nil
+	wg.Wait()
+	close(results)
+	for r := range results {
+		count += r
+	}
+	return count
 }
 
 // get alerts from AM
