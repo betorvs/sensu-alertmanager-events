@@ -356,32 +356,53 @@ func executeCheck(event *types.Event) (int, error) {
 	numAlerts := len(alerts)
 	log.Printf("Number of Alerts found: %d", numAlerts)
 	// create an event into sensu
-	// parallel
 	var countErrors, countErrorsClosing int
-	if numAlerts != 0 {
-		countErrors = processAlertsToSensuAgent(alerts, AlertmanagerExcludeAlertList)
-	}
-	// Compare sensu events with alerts and resolved it
-	if plugin.SensuAutoClose {
-		var autherr error
-		auth := Auth{}
-		if len(plugin.APIBackendKey) == 0 {
-			auth, autherr = authenticate()
+	// parallel
+	results := make(chan error, 2)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		if numAlerts != 0 {
+			countErrors = processAlertsToSensuAgent(alerts, AlertmanagerExcludeAlertList)
+		}
+		results <- nil
+	}()
+	go func() {
+		defer wg.Done()
+		// Compare sensu events with alerts and resolved it
+		if plugin.SensuAutoClose {
+			var autherr error
+			auth := Auth{}
+			if len(plugin.APIBackendKey) == 0 {
+				auth, autherr = authenticate()
 
-			if autherr != nil {
-				return sensu.CheckStateUnknown, autherr
+				if autherr != nil {
+					// return sensu.CheckStateUnknown, autherr
+					results <- autherr
+				}
+			}
+			events, err := getEvents(auth, plugin.SensuNamespace)
+			if err != nil {
+				// return sensu.CheckStateCritical, err
+				results <- err
+			}
+			numEvents := len(events)
+			log.Printf("Number of Events found: %d\n", numEvents)
+			if numEvents != 0 {
+				countErrorsClosing = processSensuEventsToClose(events, alerts)
 			}
 		}
-		events, err := getEvents(auth, plugin.SensuNamespace)
+		results <- nil
+	}()
+	wg.Wait()
+	close(results)
+	for err := range results {
 		if err != nil {
 			return sensu.CheckStateCritical, err
 		}
-		numEvents := len(events)
-		log.Printf("Number of Events found: %d\n", numEvents)
-		if numEvents != 0 {
-			countErrorsClosing = processSensuEventsToClose(events, alerts)
-		}
 	}
+
 	if countErrors != 0 {
 		return sensu.CheckStateCritical, fmt.Errorf("cannot create all events in sensu")
 	}
