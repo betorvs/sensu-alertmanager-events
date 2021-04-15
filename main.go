@@ -672,7 +672,7 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 					kubernetesResource = v
 				}
 				if k == "node" {
-					sensuAlertName = fmt.Sprintf("%s-%s-%s", alertName, labels["namespace"], v)
+					sensuAlertName = fmt.Sprintf("%s-%s", alertName, v)
 					onlyPod = false
 					kubernetesResource = v
 				}
