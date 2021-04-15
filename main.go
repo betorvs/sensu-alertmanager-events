@@ -611,8 +611,11 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 		if k == "namespace" {
 			withNamespace = true
 		}
-		if k == "job_name" || k == "statefulset" || k == "daemonset" || k == "deployment" || k == "node" || k == "service" || k == "pod" {
+		if k == "job_name" || k == "statefulset" || k == "daemonset" || k == "deployment" || k == "service" || k == "pod" {
 			withExtraName = true
+		}
+		if k == "node" {
+			withNamespace = false
 		}
 		key := k
 		// if plugin.RewriteAnnotation != "" {
@@ -684,7 +687,6 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 					kubernetesResource = v
 				}
 				if k == "node" {
-					sensuAlertName = fmt.Sprintf("%s-%s", alertName, v)
 					onlyPod = false
 					kubernetesResource = v
 				}
@@ -693,6 +695,10 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 				sensuAlertName = fmt.Sprintf("%s-%s-%s", alertName, labels["namespace"], labels["pod"])
 				kubernetesResource = labels["pod"]
 			}
+		}
+	} else {
+		if labels["node"] != "" {
+			sensuAlertName = fmt.Sprintf("%s-%s", alertName, labels["node"])
 		}
 	}
 	return alertName, sensuAlertName, cluster, kubernetesResource, labels, annotations
