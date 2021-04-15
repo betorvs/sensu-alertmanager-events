@@ -31,6 +31,7 @@ type Config struct {
 	AlertmanagerLabelSelectors  string
 	AlertmanagerTargetAlertname string
 	SensuProxyEntity            string
+	SensuAgentEntity            string
 	SensuNamespace              string
 	SensuHandler                string
 	SensuExtraLabel             string
@@ -141,6 +142,15 @@ var (
 			Default:   "",
 			Usage:     "Overwrite Proxy Entity in Sensu",
 			Value:     &plugin.SensuProxyEntity,
+		},
+		{
+			Path:      "sensu-agent-entity",
+			Env:       "HOSTNAME",
+			Argument:  "sensu-agent-entity",
+			Shorthand: "",
+			Default:   "",
+			Usage:     "Overwrite Subscriptions with Agent Entity Hostname when using proxy entity agent",
+			Value:     &plugin.SensuAgentEntity,
 		},
 		{
 			Path:      "sensu-namespace",
@@ -530,12 +540,14 @@ func sendAlertsToSensu(alertName, sensuAlertName, proxyEntity, output string, la
 	if strings.Contains(plugin.SensuHandler, ",") {
 		SensuHandlers = strings.Split(plugin.SensuHandler, ",")
 	}
+	agentEntity := fmt.Sprintf("entity:%s", plugin.SensuAgentEntity)
 	payload := &v2.Event{
 		Check: &v2.Check{
 			Output:          output,
 			Command:         removeSpecialCharacters(alertName),
 			Status:          sensuStatus,
 			ProxyEntityName: proxyEntity,
+			Subscriptions:   []string{agentEntity},
 			Handlers:        SensuHandlers,
 			ObjectMeta: v2.ObjectMeta{
 				Name:        removeSpecialCharacters(sensuAlertName),
