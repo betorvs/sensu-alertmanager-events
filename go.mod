@@ -1,6 +1,6 @@
 module github.com/betorvs/sensu-alertmanager-events
 
-go 1.14
+go 1.16
 
 require (
 	github.com/pelletier/go-toml v1.7.0 // indirect

@@ -7,7 +7,7 @@ Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
-## [0.0.3] - not released yet
+## [0.0.3] - 2021-04-29
 
 ### Added
 - new flags `--sensu-extra-annotation string` and `--sensu-extra-label string` to add annotations and labels in each alert create in sensu agent api.
