@@ -642,12 +642,14 @@ func alertDetails(alert models.GettableAlert) (alertName, sensuAlertName, cluste
 	}
 	labels["fingerprint"] = *alert.Fingerprint
 	// add extra annotation
-	annotations["prometheus_url"] = string(alert.GeneratorURL)
-	if plugin.AlertmanagerExternalURL != "" {
+	if checkURL(string(alert.GeneratorURL)) {
+		annotations["prometheus_url"] = string(alert.GeneratorURL)
+	}
+	if plugin.AlertmanagerExternalURL != "" && checkURL(plugin.AlertmanagerExternalURL) {
 		annotations["alertmanager_url"] = printAlertManagerURL(alertName)
 	}
 	// if alertname TargetDown, we want to include a prometheus targets page to make easy to debug
-	if alertName == plugin.AlertmanagerTargetAlertname {
+	if alertName == plugin.AlertmanagerTargetAlertname && checkURL(string(alert.GeneratorURL)) {
 		promTargets, err := url.Parse(string(alert.GeneratorURL))
 		if err == nil {
 			promTargets.RawQuery = ""
@@ -1015,4 +1017,9 @@ func splitString(s, div string) (string, string) {
 		}
 	}
 	return "", ""
+}
+
+func checkURL(str string) bool {
+	u, err := url.Parse(str)
+	return err == nil && u.Scheme != "" && u.Host != ""
 }
