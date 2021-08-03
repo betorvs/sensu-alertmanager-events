@@ -22,7 +22,6 @@ The sensu-alertmanager-events is a [Sensu Check][1] that fetch alerts from [Aler
 ## Usage examples
 
 ```bash
-
 Sensu check for alert maanager events
 
 Usage:
@@ -38,6 +37,7 @@ Flags:
   -a, --alert-manager-api-url string                The URL for the Agent to connect to Alert Manager (default "http://alertmanager-main.monitoring:9093/api/v2/alerts")
   -c, --alert-manager-cluster-label-entity string   Alert Manager label that represent a cluster entity inside Sensu
   -x, --alert-manager-exclude-alert-list string     Alert Manager alerts to be excluded. split by comma. (default "Watchdog,")
+  -L, --alert-manager-exclude-labels string         Query for Alertmanager Exclude Labels (e.g. alertname=TargetDown,environment=dev)
   -e, --alert-manager-external-url string           Alert Manager External URL
   -l, --alert-manager-label-selectors string        Query for Alertmanager LabelSelectors (e.g. alertname=TargetDown,environment=dev)
   -T, --alert-manager-target-alertname string       Alert name for Targets in prometheus. It creates a link in label prometheus_targets_url (default "TargetDown")
@@ -52,6 +52,7 @@ Flags:
   -i, --insecure-skip-verify                        skip TLS certificate verification (not recommended!)
       --rewrite-annotation string                   Rewrite Annotation from prometheus rules to sensu annotation format to work with sensu plugins. Format: opsgenie_priority=sensu.io/plugins/sensu-opsgenie-handler/config/priority Or for multiples use comma: opsgenie_priority=sensu.io/plugins/sensu-opsgenie-handler/config/priority,extraTwo=extraValue
   -s, --secure                                      Use TLS connection to API
+      --sensu-agent-entity string                   Overwrite Subscriptions with Agent Entity Hostname when using proxy entity agent
       --sensu-extra-annotation string               Add Extra Sensu Check Annotation in alert send to Sensu Agent API. Format: annotationName=annotationValue Or for multiples use comma: annotationName=annotationValue,extraTwo=extraValue
       --sensu-extra-label string                    Add Extra Sensu Check Label in alert send to Sensu Agent API. Format: labelName=labelValue Or for multiple values labelName=labelValue,ExtraLabel=ExtraValue
   -H, --sensu-handler string                        Sensu Handler for alerts. Split by commas (default "default,")
@@ -60,7 +61,6 @@ Flags:
   -t, --trusted-ca-file string                      TLS CA certificate bundle in PEM format
 
 Use "sensu-alertmanager-events [command] --help" for more information about a command.
-
 
 ```
 
@@ -76,7 +76,7 @@ following command to add the asset:
 sensuctl asset add betorvs/sensu-alertmanager-events
 ```
 
-If you're using an earlier version of sensuctl, you can find the asset on the [Bonsai Asset Index][https://bonsai.sensu.io/assets/betorvs/sensu-alertmanager-events].
+If you're using an earlier version of sensuctl, you can find the asset on the [Bonsai Asset Index](https://bonsai.sensu.io/assets/betorvs/sensu-alertmanager-events).
 
 ### Check definition
 
@@ -115,6 +115,53 @@ go build
 ```
 
 ## Additional notes
+
+### Workflow
+
+```
+                    +---------+                 +---------------+ +---------------+     +-----------------+
+                    | Plugin  |                 | AlertManager  | | SensuAgentAPI |     | SensuBackendAPI |
+                    +---------+                 +---------------+ +---------------+     +-----------------+
+                          |                              |                 |                      |
+                          | Get all alerts               |                 |                      |
+                          |----------------------------->|                 |                      |
+                          |                              |                 |                      |
+                          |         Alert Manager Alerts |                 |                      |
+                          |<-----------------------------|                 |                      |
+   ---------------------\ |                              |                 |                      |
+   | *Clean up Alerts   | |                              |                 |                      |
+   | by Name and Labels |-|                              |                 |                      |
+   |--------------------| |                              |                 |                      |
+                          |                              |                 |                      |
+                          | Create Events in Sensu       |                 |                      |
+                          |----------------------------------------------->|                      |
+                          |                              |                 |                      |
+                          |                              |                 | Send Events          |
+                          |                              |                 |--------------------->|
+                          |                              |                 |                      | ------------------\
+                          |                              |                 |                      |-|  Observability  |
+                          |                              |                 |                      | |  Pipeline       |
+                          |                              |                 |                      | |-----------------|
+                          | Get Events.                  |                 |                      |
+                          |---------------------------------------------------------------------->|
+                          |                              |                 |                      |
+                          |                              |  Sensu Events with plugin owner label. |
+                          |<----------------------------------------------------------------------|
+------------------------\ |                              |                 |                      |
+| **Compare AlertManager| |                              |                 |                      |
+| and SensuBackend List |-|                              |                 |                      |
+|-----------------------| |                              |                 |                      |
+                          |                              |                 |                      |
+                          | Send events to close         |                 |                      |
+                          |----------------------------------------------->|                      |
+                          |                              |                 |                      |
+                          |                              |                 | Close Events         |
+                          |                              |                 |--------------------->|
+                          |                              |                 |                      |
+```
+
+`*` - Flags: `--alert-manager-exclude-alert-list`, `--alert-manager-label-selectors`, `--alert-manager-exclude-labels` are used here.   
+`**` - Use: Check if `Fingerprint` attribute matches.
 
 ## Contributing
 

@@ -7,6 +7,13 @@ Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+## [0.0.5] - 2021-07-28
+### Added
+- flag `--alert-manager-exclude-labels` to remove alerts from alert manager slice based on labels
+
+### Changed
+- update README with workflow
+
 ## [0.0.4] - 2021-05-20
 ### Changed
 - Add a checkURL before creating annotations. Inspired by [stackoverflow answer](https://stackoverflow.com/questions/31480710/validate-url-with-standard-package-in-go)

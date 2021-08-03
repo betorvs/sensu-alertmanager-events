@@ -29,6 +29,7 @@ type Config struct {
 	AlertmanagerExternalURL     string
 	AlertmanagerLabelEntity     string
 	AlertmanagerLabelSelectors  string
+	AlertmanagerExcludeLabels   string
 	AlertmanagerTargetAlertname string
 	SensuProxyEntity            string
 	SensuAgentEntity            string
@@ -50,6 +51,7 @@ type Config struct {
 	Protocol                    string
 	ProxyEntity                 string
 	LabelSelector               map[string]string
+	ExcludeLabels               map[string]string
 }
 
 // Auth represents the authentication info
@@ -124,6 +126,15 @@ var (
 			Default:   "",
 			Usage:     "Query for Alertmanager LabelSelectors (e.g. alertname=TargetDown,environment=dev)",
 			Value:     &plugin.AlertmanagerLabelSelectors,
+		},
+		{
+			Path:      "alert-manager-exclude-labels",
+			Env:       "ALERT_MANAGER_EXCLUDE_LABELS",
+			Argument:  "alert-manager-exclude-labels",
+			Shorthand: "L",
+			Default:   "",
+			Usage:     "Query for Alertmanager Exclude Labels (e.g. alertname=TargetDown,environment=dev)",
+			Value:     &plugin.AlertmanagerExcludeLabels,
 		},
 		{
 			Path:      "alert-manager-target-alertname",
@@ -312,6 +323,10 @@ func checkArgs(event *types.Event) (int, error) {
 	// LabelsSelectors
 	if plugin.AlertmanagerLabelSelectors != "" {
 		plugin.LabelSelector = parseLabelArg(plugin.AlertmanagerLabelSelectors)
+	}
+	// ExcludeLabels
+	if plugin.AlertmanagerExcludeLabels != "" {
+		plugin.ExcludeLabels = parseLabelArg(plugin.AlertmanagerExcludeLabels)
 	}
 	// For Sensu Backend Connections
 	if plugin.Secure {
@@ -856,6 +871,7 @@ func filterEvents(events []*types.Event) []*types.Event {
 	}
 	onlyTheseLabels := make(map[string]string)
 	if plugin.SensuAutoCloseLabel != "" {
+		// if there are specific label to be used as entity name
 		err := json.Unmarshal([]byte(plugin.SensuAutoCloseLabel), &onlyTheseLabels)
 		// fmt.Println(onlyTheseLabels)
 		if err != nil {
@@ -893,8 +909,17 @@ func filterAlerts(alerts []models.GettableAlert) (result []models.GettableAlert)
 
 	for _, alert := range alerts {
 		selected := true
+		// check if it find labels selector
 		for key, value := range plugin.LabelSelector {
 			if alert.Labels[key] != value {
+				selected = false
+				break
+			}
+		}
+		// exclude alerts based on labels
+		// if found, remove from alert manager list
+		for key, value := range plugin.ExcludeLabels {
+			if alert.Labels[key] == value {
 				selected = false
 				break
 			}
